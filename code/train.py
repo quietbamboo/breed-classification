@@ -15,12 +15,12 @@ import time
 from PIL import Image
 
 
-from torchvision.models import vgg16,mobilenetv3
+from torchvision.models import vgg16, mobilenetv3
 from torchvision.models import mobilenet_v3_large, mobilenet_v3_small
-from torchvision.models import resnet50,ResNet50_Weights
+from torchvision.models import resnet50, ResNet50_Weights
 #from my_model import ResVit
 from torchvision.models import alexnet
-from torchvision.models import regnet_y_8gf,RegNet_Y_8GF_Weights
+from torchvision.models import regnet_y_8gf, RegNet_Y_8GF_Weights
 import timm
 # from timm.models.vision_transformer import vit_base_resnet26d_224  as create_model
 from timm.models.vision_transformer import vit_base_patch16_224_in21k as create_model
@@ -28,7 +28,7 @@ from timm.models.swin_transformer import swin_base_patch4_window7_224_in22k as c
 import torch.optim as optim
 
 from tqdm import tqdm
-from sklearn.model_selection import KFold,train_test_split
+from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import accuracy_score
 #from dataLoader.dataSet import load_all_data
 #from dataLoader.dataLoader import My_Dataset
@@ -52,14 +52,14 @@ class MyDataset(Dataset):
             image = self.transform(image)
         return image, label
 
-#根据组号选取图像及其label
+# Select images and their labels based on group number
 def get_images_by_groups(all_imgs, all_labels, groups, selected_groups):
     
     indices = [i for i, g in enumerate(groups) if g in selected_groups]
     #print(len(indices))
     return all_imgs[indices], all_labels[indices]
 
-#加载(图像,标签,组号)
+# Load (image, label, group number)
 def load_all_data_and_groups(data_root):
     classes = [cla for cla in os.listdir(data_root) if os.path.isdir(os.path.join(data_root, cla))]
     # classes.sort()
@@ -75,46 +75,46 @@ def load_all_data_and_groups(data_root):
             images = [os.path.join(ind_path, img) for img in os.listdir(ind_path) if img.endswith(('.png', '.jpg', '.jpeg'))]
             imgs.extend(images)
             labels.extend([class_to_idx[cla]] * len(images))
-            groups.extend([cla+'/'+ind] * len(images))  # 组合类别和个体编号作为组ID
-            #print(list(zip(imgs,labels,groups)))
+            groups.extend([cla+'/'+ind] * len(images))  # Combine class and individual number as group ID
+            #print(list(zip(imgs, labels, groups)))
     return np.array(imgs), np.array(labels), np.array(groups)
 
-# 初始化模型
+# Initialize model
 def initialize_model():
     
-    #使用Resnet_50网络模型
+    # Use Resnet_50 network model
     # model = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
     # # model = resnet50(weights=None).to(device)
     # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 26)  # 假设所有标签的数量给出了类别数
+    # model.fc = nn.Linear(num_ftrs, 26)  # Assuming the number of labels gives the number of classes
     # model = model.to(device)
     # print(model)
     
-    #使用ResVit网络模型
+    # Use ResVit network model
     # model = ResVit(num_classes=26).to(device)
     
-    #使用ViT网络模型
+    # Use ViT network model
     # model = VisionTransformer(num_classes=26, pretrained=True).to(device)
 
-    #使用MobileNet3v模型
+    # Use MobileNet3v model
     # model = mobilenet_v3_large(pretrained=True).to(device)
     # num_ftrs = model.classifier[3].in_features  # Assuming the classifier's linear layer is at index 3
     # model.classifier[3] = nn.Linear(num_ftrs, 26)
     # model.to(device)
     # print(model)
     
-    #使用ViT网络模型
-    # model = create_model(pretrained=True,pretrained_cfg=
+    # Use ViT network model
+    # model = create_model(pretrained=True, pretrained_cfg=
     #                      {"source":"file","file":"/root/.cache/huggingface/hub/vit_base_patch16_224.augreg_in21k/pytorch_model.bin"},
-    #                      img_size=1024,num_classes=21843).to(device)
+    #                      img_size=1024, num_classes=21843).to(device)
     # model.head = torch.nn.Linear(model.head.in_features, 26).to(device)
     
-    #使用swin网络模型
+    # Use swin network model
     weight_path = "/mnt/zlc/models/swin_base_patch4_window7_224_22k.pth"
-    model = create_swin(pretrained=True, pretrained_cfg={"source":"file","file":weight_path},num_classes=21841,img_size=400).to(device)
+    model = create_swin(pretrained=True, pretrained_cfg={"source":"file","file":weight_path}, num_classes=21841, img_size=400).to(device)
     model.head.fc = torch.nn.Linear(model.head.fc.in_features, 93).to(device)
     # print(model)
-    #使用alexnet网络模型
+    # Use alexnet network model
     # model = alexnet(pretrained=True).to(device)
     # model = vgg16(pretrained=True).to(device)
     # model.classifier[6] = torch.nn.Linear(model.classifier[6].in_features, 26)
@@ -130,13 +130,13 @@ def initialize_model():
 #         param.requires_grad = True
 #     model.to(device)
     
-    #使用RegNet网络模型
+    # Use RegNet network model
     # model = regnet_y_8gf(pretrained=True).to(device)
     # num_ftrs = model.fc.in_features
     # model.fc = torch.nn.Linear(num_ftrs, 26)
     # model.to(device)
 
-    # weights = RegNet_Y_8GF_Weights.DEFAULT  # 使用默认的预训练权重
+    # weights = RegNet_Y_8GF_Weights.DEFAULT  # Use default pre-trained weights
     # model = regnet_y_8gf(weights=weights).to(device)
     # num_ftrs = model.fc.in_features
     # model.fc = torch.nn.Linear(num_ftrs, 26)
@@ -144,7 +144,7 @@ def initialize_model():
     
     return model
 
-#模型训练函数
+# Model training function
 def train_one_epoch(epoch_index, train_loader, model, optimizer, criterion):
     model.train()
     batch_iter = tqdm(train_loader, desc="Training", leave=True)
@@ -173,9 +173,9 @@ def train_one_epoch(epoch_index, train_loader, model, optimizer, criterion):
     epoch_acc = running_corrects.double() / len(train_loader.dataset)
     
     print(f'Epoch{epoch_index+1}:Train - Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-    return epoch_loss,epoch_acc
+    return epoch_loss, epoch_acc
 
-#验证函数
+# Validation function
 def validate_one_epoch(epoch, val_loader, model, criterion):
     model.eval()
     running_loss = 0.0
@@ -200,7 +200,7 @@ def validate_one_epoch(epoch, val_loader, model, criterion):
     print(f"Epoch{epoch+1}:Val - Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}")
     return epoch_loss, epoch_acc
 
-# 测试集评估函数
+# Test set evaluation function
 def evaluate_on_test(model, test_loader):
     model.eval()
     all_preds = []
@@ -213,11 +213,11 @@ def evaluate_on_test(model, test_loader):
             all_preds.extend(preds.cpu().numpy())
             all_targets.extend(labels.numpy())
 
-    # 计算准确率
+    # Compute accuracy
     final_acc = accuracy_score(all_targets, all_preds)
     return final_acc
 
-# 参数配置
+# Parameter configuration
 data_path = r'/mnt/zlc/chicken_classifier/data/data/chicken_breeds/'
 random_seed = 123
 random.seed(random_seed)
@@ -236,31 +236,31 @@ batch_size = 32
 img_size = 512
 train_losses = []
 train_accuracies = []
-val_losses = []  # 初始化存储每个epoch验证损失的列表
-val_accuracies = []  # 初始化存储每个epoch验证准确率的列表
+val_losses = []  # Initialize list to store validation loss for each epoch
+val_accuracies = []  # Initialize list to store validation accuracy for each epoch
 result = []
-#开始计时
+# Start timing
 start_time = time.time()
 
-#载入全部数据
+# Load all data
 all_imgs, all_labels, all_groups = load_all_data_and_groups(data_path)
-# print(len(all_imgs),len(all_labels))
+# print(len(all_imgs), len(all_labels))
 unique_groups = np.unique(all_groups)
 
-# 先划分出测试集的 groups
+# First, split the test groups
 train_val_groups, test_groups = train_test_split(unique_groups, test_size=0.2, random_state=random_seed)
 train_groups, val_groups = train_test_split(train_val_groups, test_size=0.2, random_state=random_seed)
 
-# 根据 groups 获取对应的 images 和 labels
+# Get corresponding images and labels based on groups
 imgs_train_val, labels_train_val = get_images_by_groups(all_imgs, all_labels, all_groups, train_val_groups)
 imgs_train, labels_train = get_images_by_groups(all_imgs, all_labels, all_groups, train_groups)
 imgs_val, labels_val = get_images_by_groups(all_imgs, all_labels, all_groups, val_groups)
 imgs_test, labels_test = get_images_by_groups(all_imgs, all_labels, all_groups, test_groups)
-print(f"train_images:{len(imgs_train)},val_images:{len(imgs_val)},test_images:{len(imgs_val)}")
-# 定义数据转换
+print(f"train_images:{len(imgs_train)}, val_images:{len(imgs_val)}, test_images:{len(imgs_val)}")
+# Define data transformations
 data_transform = {
     "train": transforms.Compose([
-        transforms.RandomResizedCrop((img_size,img_size), scale=(0.6, 1.0)),
+        transforms.RandomResizedCrop((img_size, img_size), scale=(0.6, 1.0)),
         transforms.RandomHorizontalFlip(0.5),
         transforms.RandomRotation(20.0),
         transforms.ColorJitter(brightness=0.2,
@@ -271,24 +271,22 @@ data_transform = {
          transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ]),
     "val": transforms.Compose([
-         transforms.Resize((img_size,img_size)),
+         transforms.Resize((img_size, img_size)),
          transforms.ToTensor(),
          transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 }
 
-# 数据加载
+# Data loading
 train_dataset = MyDataset(imgs_train, labels_train, transform=data_transform['train'])
 val_dataset = MyDataset(imgs_val, labels_val, transform=data_transform['val'])
 test_dataset = MyDataset(imgs_test, labels_test, transform=data_transform['val'])
 
-train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, num_workers=8)
-val_loader = DataLoader(val_dataset, batch_size = batch_size, shuffle=True, num_workers=8)
-test_loader = DataLoader(test_dataset, batch_size = batch_size, shuffle=True, num_workers=8)
-print(f"train_num:{len(train_dataset)},val_num:{len(val_dataset)},test_num:{len(test_dataset)}")
-print(f"train_groups_num:{len(train_groups)},val_groups_num:{len(val_groups)},test_groups_num:{len(test_groups)}")
-
-
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, num_workers=8)
+print(f"train_num:{len(train_dataset)}, val_num:{len(val_dataset)}, test_num:{len(test_dataset)}")
+print(f"train_groups_num:{len(train_groups)}, val_groups_num:{len(val_groups)}, test_groups_num:{len(test_groups)}")
 
 print('Starting training')
 for epoch in range(epochs):
@@ -297,17 +295,17 @@ for epoch in range(epochs):
         break
     print(f'Epoch {epoch+1}/{epochs}')
 
-    train_loss,train_acc = train_one_epoch(epoch, train_loader, model, optimizer, criterion)
+    train_loss, train_acc = train_one_epoch(epoch, train_loader, model, optimizer, criterion)
     val_loss, val_acc = validate_one_epoch(epoch, val_loader, model, criterion)
-    train_losses.append(train_loss)  # 在列表末尾添加当前epoch的训练损失
-    train_accuracies.append(train_acc.item())# 在列表末尾添加当前epoch的训练准确率
-    val_losses.append(val_loss)  # 在列表末尾添加当前epoch的验证损失
-    val_accuracies.append(val_acc.item())  # 在列表末尾添加当前epoch的验证准确率
+    train_losses.append(train_loss)  # Append current epoch's training loss to the list
+    train_accuracies.append(train_acc.item())  # Append current epoch's training accuracy to the list
+    val_losses.append(val_loss)  # Append current epoch's validation loss to the list
+    val_accuracies.append(val_acc.item())  # Append current epoch's validation accuracy to the list
 
-    result.append([epoch+1, train_loss, val_loss, train_acc.item(),val_acc.item()])
+    result.append([epoch+1, train_loss, val_loss, train_acc.item(), val_acc.item()])
     pd.DataFrame(result, columns=['epoch', 'train_loss', 'val_loss', 'train_acc', 'val_acc']).to_csv(
         rf'/mnt/zlc/chicken_classifier/result/temp/swin_512/swin_batch_{batch_size}.csv', index=False)
-    # 如果有改进，保存模型
+    # Save model if there's improvement
     if val_acc > best_acc:
         best_acc = val_acc
         torch.save(model.state_dict(), rf'/mnt/zlc/chicken_classifier/result/temp/swin_512/swin_batch_{batch_size}.pth')
@@ -316,14 +314,14 @@ for epoch in range(epochs):
     else:
         patiences -= 1
 
-# 确保val_losses和val_accuracies有数据
+# Ensure val_losses and val_accuracies have data
 # print(f"Validation Losses: {val_losses}")
 # print(f"Validation Accuracies: {val_accuracies}")
 
-# 检查epoch的数量，假设您的epoch是从1开始的连续整数
-print(f"Number of epochs: {len(val_losses)}") # 应该与val_losses和val_accuracies的长度一致
+# Check number of epochs, assuming epochs are consecutive integers starting from 1
+print(f"Number of epochs: {len(val_losses)}") # Should match the length of val_losses and val_accuracies
 
-# 绘制和保存训练损失与准确率图像
+# Plot and save training loss and accuracy images
 plt.figure(figsize=(12, 5))
 plt.subplot(1, 2, 1)
 plt.plot(range(1, len(train_losses) + 1), train_losses, label='Train Loss')
@@ -343,7 +341,7 @@ plt_path = rf'/mnt/zlc/chicken_classifier/result/temp/swin_512/swin_Train_Metric
 plt.savefig(plt_path)
 plt.close()
 
-# 绘制和保存验证损失与准确率图像
+# Plot and save validation loss and accuracy images
 plt.figure(figsize=(12, 5))
 plt.subplot(1, 2, 1)
 plt.plot(range(1, len(val_losses) + 1), val_losses, label='Val Loss')
@@ -363,16 +361,16 @@ plt_path = rf'/mnt/zlc/chicken_classifier/result/temp/swin_512/swin_Val_Metrics_
 plt.savefig(plt_path)
 plt.close()
 print(f'Saved Validation Metrics Plot at {plt_path}')
-# 评估这一折的模型
+# Evaluate this fold's model
 model.load_state_dict(torch.load(rf'/mnt/zlc/chicken_classifier/result/temp/swin_512/swin_batch_{batch_size}.pth'))
-#结束计时
+# End timing
 end_time = time.time()
-# 计算程序的运行时间
+# Calculate program run time
 training_time = (end_time - start_time) / 60
 print(f"Training time: {training_time:.2f} minutes")
 test_acc = evaluate_on_test(model, test_loader)
 print(f'Test Acc: {test_acc:.4f}')
-## 计算所有折的平均测试准确率
+## Calculate average test accuracy across all folds
 # average_test_acc = np.mean(test_accs)
 
 # print(f'Average Test Accuracy across all folds: {average_test_acc:.4f}')

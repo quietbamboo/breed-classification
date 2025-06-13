@@ -16,13 +16,13 @@ from pytorch_grad_cam.utils.image import show_cam_on_image, preprocess_image
 
 
 # def reshape_transform(tensor, height=32, width=32):
-#     # 适合ViT,ViT的config.MODEL.NUM_HEADS[-1]=16
+#     # Suitable for ViT, ViT's config.MODEL.NUM_HEADS[-1]=16
 #     result = tensor[:, 1:, :].reshape(tensor.size(0),height, width, tensor.size(2))
 #     result = result.transpose(2, 3).transpose(1, 2)
 #     return result
 
 def reshape_transform(tensor, height=16, width=16):
-    # 适合Swin,Swin的config.MODEL.NUM_HEADS[-1]=32
+    # Suitable for Swin, Swin's config.MODEL.NUM_HEADS[-1]=32
     result = tensor.reshape(tensor.size(0),height, width, tensor.size(3))
     result = result.transpose(2, 3).transpose(1, 2)
     return result
@@ -48,7 +48,7 @@ def process_and_predict_image(img_path, model, device):
     return np.array(rgb_img) / 255.0, input_tensor, predicted_class
 
 if __name__ == "__main__":
-    # 加载模型，参考模型推理的流程
+    # Load model, reference model inference flow
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = create_swin(pretrained=False, num_classes=21841, img_size=512).to(device)
     model.head.fc = torch.nn.Linear(model.head.fc.in_features, 26).to(device)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # print(model)
     model.eval()
     
-    # 处理图片
+    # Process images
     # folder_path = '/mnt/zlc/chicken_classifier/data/data/chicken_breeds/17/--18'
     folder_path = '/mnt/zlc/good_origin/good'
     output_path = '/mnt/zlc/cam_output/swin/512/'
